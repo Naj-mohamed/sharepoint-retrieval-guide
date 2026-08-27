@@ -50,7 +50,7 @@ li{margin-bottom:.35rem}
 <div class="container">
 
 <h1>How SharePoint Knowledge Retrieval Works in Copilot Studio</h1>
-<p class="subtitle">A plain-English guide to how Copilot Studio finds and uses information from SharePoint to answer questions. Includes confirmed product details, observed test results, and open questions — clearly labelled throughout.</p>
+<p class="subtitle">A plain-English guide to how Copilot Studio finds and uses information from SharePoint to answer questions. Clearly distinguishes between documented product details and undisclosed implementation details.</p>
 
 <nav class="nav">
 <a href="#overview">Overview</a>
@@ -85,19 +85,19 @@ Two people take the same exam. One is given three pages of notes. The other is g
 <p>SharePoint has two different indexes. Understanding the difference is essential.</p>
 
 <h3>The SharePoint Search Index (The Original)</h3>
-<p>This has existed for years. It is a catalogue of every word in every file in SharePoint. When you use the SharePoint search bar, this is what you are searching. It matches <strong>words</strong> — if you search for "limit switch", it finds files containing those exact words. If a document says "auto-wiper position sensor" instead, it will not find it.</p>
+<p>This has existed for years. It is a catalogue of every word in every file in SharePoint. When you use the SharePoint search bar, this is what you are searching. It matches <strong>words</strong> — if you search for "safety valve", it finds files containing those exact words. If a document says "pressure relief mechanism" instead, it will not find it.</p>
 
 <h3>The Semantic Index (The AI Layer)</h3>
 <p>This is a separate, newer layer built on top of the SharePoint search index. It was created for AI and Copilot scenarios.</p>
-<p>It takes everything from the SharePoint search index and adds <strong>understanding of meaning</strong>. It converts content into vectors — numerical representations where similar concepts are grouped together. This means "limit switch", "auto-wiper limit switches", and "position sensor" are all understood as related.</p>
+<p>It takes everything from the SharePoint search index and adds <strong>understanding of meaning</strong>. It converts content into vectors — numerical representations where similar concepts are grouped together. This means "safety valve", "pressure relief valve", and "overpressure protection" are all understood as related.</p>
 
 <table>
 <tr><th>Aspect</th><th>SharePoint Search Index</th><th>Semantic Index</th></tr>
 <tr><td>Available since</td><td>Years ago</td><td>Built for the Copilot era</td></tr>
 <tr><td>How it searches</td><td>Keyword matching only</td><td>Keywords AND meaning</td></tr>
 <tr><td>Admin setup</td><td>Some controls available</td><td>Fully automatic — cannot be disabled</td></tr>
-<tr><td>Built by</td><td>SharePoint</td><td>A separate Microsoft service (referred to as Substrate)</td></tr>
-<tr><td>Who owns it</td><td>SharePoint</td><td>Not Copilot Studio — Studio is a consumer</td></tr>
+<tr><td>Built by</td><td>SharePoint</td><td>A separate Microsoft 365 service</td></tr>
+<tr><td>Who owns it</td><td>SharePoint</td><td>Not Copilot Studio — Studio is a consumer of this index</td></tr>
 </table>
 
 <h3>How They Relate</h3>
@@ -176,7 +176,7 @@ Tenant Graph Grounding is the upgrade switch for SharePoint retrieval. It connec
 <table>
 <tr><th>Signal</th><th>What It Does</th><th>Importance</th></tr>
 <tr><td>Hybrid search score</td><td>How well content matches the query (keywords + meaning)</td><td>Primary — the main driver</td></tr>
-<tr><td>SharePoint metadata</td><td>Custom columns on your library (for example, "Product Line: PureLine")</td><td>Secondary boost</td></tr>
+<tr><td>SharePoint metadata</td><td>Custom columns on your library (for example, "Department", "Document Type", "Region")</td><td>Secondary boost</td></tr>
 <tr><td>Activity</td><td>Recently accessed or shared documents get a slight boost</td><td>Minor tiebreaker</td></tr>
 <tr><td>People and social</td><td>Content from close working network ranks slightly higher</td><td>Minor tiebreaker</td></tr>
 </table>
@@ -263,15 +263,14 @@ Tenant Graph Grounding is the upgrade switch for SharePoint retrieval. It connec
 <tr><td>How tables and complex layouts are handled</td><td><span class="tag tag-open">NOT DISCLOSED</span></td></tr>
 </table>
 
-<h3>Why Microsoft Does Not Share This</h3>
-<p>In Copilot Studio Office Hours, the product team confirmed:</p>
+<h3>Why These Details Are Not Published</h3>
 <ul>
-<li>The chunking and indexing pipeline is <strong>not owned by Copilot Studio</strong> — it is managed by the underlying Microsoft 365 retrieval service (referred to as Substrate)</li>
-<li>Copilot Studio consumes an internal API that returns search results — it does not perform the indexing</li>
-<li>Implementation details may be <strong>optimised or changed</strong> in the future</li>
-<li>Any specific detail shared today might not remain accurate over time</li>
+<li>The chunking and indexing pipeline is <strong>not owned by Copilot Studio</strong> — it is managed by the underlying Microsoft 365 retrieval service</li>
+<li>Copilot Studio consumes an internal API that returns search results — it does not perform the indexing itself</li>
+<li>Implementation details may be <strong>optimised or changed</strong> over time as Microsoft improves the retrieval stack</li>
+<li>Any specific value published today might not remain accurate in future releases</li>
 <li>Customers should avoid basing architectural decisions on undocumented internal implementation details</li>
-<li>The recommended approach is to <strong>benchmark actual results</strong> using representative questions</li>
+<li>The recommended approach is to <strong>benchmark actual results</strong> using representative questions from your own environment</li>
 </ul>
 
 <div class="callout purple">
@@ -279,7 +278,7 @@ Tenant Graph Grounding is the upgrade switch for SharePoint retrieval. It connec
 <strong>Chunk size</strong> (how big each section is) and <strong>number of chunks retrieved</strong> (how many sections go to the AI) are two different things. The number retrieved is documented (top 3 standard, more with Graph Grounding). The chunk size is not disclosed.
 </div>
 
-<p class="source">Sources: <a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-unstructured-data" target="_blank">Unstructured data as a knowledge source — MS Learn</a> · Office Hours guidance (August 2026)</p>
+<p class="source">Source: <a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-unstructured-data" target="_blank">Unstructured data as a knowledge source — MS Learn</a></p>
 </section>
 
 <!-- CONTENT REFRESH -->
@@ -421,8 +420,8 @@ SharePoint provides a managed experience with less effort. Azure AI Search provi
 </table>
 
 <div class="callout purple">
-<strong>Why these details are not shared</strong>
-The product team has confirmed that these are managed-service implementation details that may be optimised over time. Disclosing specific values could create architectural dependencies that break when the system is updated. The recommended approach is to evaluate based on output quality.
+<strong>Why these details are not published</strong>
+These are managed-service implementation details that may be optimised over time. Publishing specific values could create architectural dependencies that break when the system is updated. The recommended approach is to evaluate based on output quality using representative questions.
 </div>
 </section>
 
@@ -433,16 +432,16 @@ The product team has confirmed that these are managed-service implementation det
 
 <h3>Suggested Test Categories</h3>
 <ul>
-<li>Exact part-number lookup</li>
-<li>Product-specific part-number lookup (where the same component differs by model)</li>
+<li>Exact lookup (for example, a specific code, reference number, or identifier)</li>
+<li>Product or category-specific lookup (where the same item differs by variant)</li>
 <li>Questions requiring information from a table</li>
 <li>Questions requiring information from multiple sections</li>
 <li>Questions requiring information from multiple documents</li>
-<li>Maintenance procedure retrieval</li>
-<li>Product specification lookup</li>
+<li>Process or procedure retrieval</li>
+<li>Specification lookup</li>
 <li>Troubleshooting questions</li>
-<li>Questions with abbreviations or informal product names</li>
-<li>Questions where two products have similar terminology</li>
+<li>Questions with abbreviations or informal names</li>
+<li>Questions where two items have similar terminology</li>
 <li>Questions where the correct answer should be "not found"</li>
 <li>Questions asked by users with different SharePoint permissions</li>
 </ul>
@@ -451,7 +450,7 @@ The product team has confirmed that these are managed-service implementation det
 <table>
 <tr><th>Criterion</th><th>What to Assess</th></tr>
 <tr><td>Correctness</td><td>Is the information factually accurate?</td></tr>
-<tr><td>Completeness</td><td>Does it cover all relevant product models and variations?</td></tr>
+<tr><td>Completeness</td><td>Does it cover all relevant items and variations?</td></tr>
 <tr><td>Relevance</td><td>Is the response focused on what was asked?</td></tr>
 <tr><td>Citation quality</td><td>Do citations point to the right source documents?</td></tr>
 <tr><td>Disambiguation</td><td>Does it distinguish between similar products correctly?</td></tr>
@@ -512,7 +511,7 @@ If SharePoint consistently meets quality, security and freshness requirements, i
 </section>
 
 <div class="footer">
-<p>Information is based on publicly available Microsoft Learn documentation and Copilot Studio Office Hours guidance (August 2026). Details labelled as unconfirmed should not be presented as product commitments.</p>
+<p>Information is based on publicly available Microsoft Learn documentation. Details labelled as not disclosed should not be assumed or presented as product commitments. Last updated August 2026.</p>
 </div>
 
 </div>
