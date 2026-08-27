@@ -1,419 +1,520 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Copilot Studio - SharePoint Knowledge Retrieval Explained</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8f9fa; color: #1a1a1a; line-height: 1.7; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
-        h1 { font-size: 2.2rem; color: #0078d4; margin-bottom: 0.5rem; font-weight: 700; }
-        h2 { font-size: 1.5rem; color: #0078d4; margin-bottom: 1rem; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.5rem; }
-        h3 { font-size: 1.15rem; color: #1a1a1a; margin-bottom: 0.5rem; font-weight: 600; }
-        .subtitle { color: #555; margin-bottom: 2rem; font-size: 1rem; }
-        .tab-nav { display: flex; gap: 0; margin-bottom: 0; border-bottom: 2px solid #ddd; flex-wrap: wrap; background: #fff; border-radius: 8px 8px 0 0; }
-        .tab-btn { padding: 0.85rem 1.5rem; background: transparent; border: none; color: #666; cursor: pointer; font-size: 0.9rem; font-family: inherit; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; font-weight: 500; }
-        .tab-btn:hover { color: #0078d4; background: #f0f7ff; }
-        .tab-btn.active { color: #0078d4; border-bottom-color: #0078d4; background: #fff; font-weight: 600; }
-        .tab-content { display: none; padding: 2rem; background: #fff; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px; }
-        .tab-content.active { display: block; }
-        .flow-container { display: flex; flex-direction: column; gap: 0; align-items: center; margin: 2rem 0; }
-        .flow-step { background: #fff; border: 2px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; width: 100%; max-width: 850px; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .flow-step.highlight { border-color: #0078d4; background: #f0f7ff; box-shadow: 0 2px 12px rgba(0,120,212,0.1); }
-        .flow-step.warning { border-color: #d97706; background: #fffbeb; }
-        .flow-step.success { border-color: #059669; background: #f0fdf4; }
-        .flow-step-number { position: absolute; top: -14px; left: 20px; background: #0078d4; color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; }
-        .flow-step.warning .flow-step-number { background: #d97706; }
-        .flow-step.success .flow-step-number { background: #059669; }
-        .flow-arrow { width: 3px; height: 35px; background: #0078d4; position: relative; }
-        .flow-arrow::after { content: '▼'; position: absolute; bottom: -10px; left: -6px; color: #0078d4; font-size: 0.8rem; }
-        .flowchart-wrapper { width: 100%; overflow-x: auto; margin: 2rem 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; }
-        .flowchart-wrapper svg { display: block; margin: 0 auto; }
-        .comparison-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
-        .comparison-table th { background: #0078d4; color: #fff; padding: 0.85rem 1rem; text-align: left; border: 1px solid #0078d4; }
-        .comparison-table td { padding: 0.75rem 1rem; border: 1px solid #e0e0e0; vertical-align: top; }
-        .comparison-table tr:nth-child(even) { background: #f8f9fa; }
-        .comparison-table tr:hover { background: #f0f7ff; }
-        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 1.5rem 0; }
-        .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: box-shadow 0.2s; }
-        .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-        .card-icon { font-size: 1.8rem; margin-bottom: 0.75rem; }
-        .card h3 { margin-bottom: 0.5rem; }
-        .card p, .card ul { color: #444; font-size: 0.9rem; }
-        .card ul { padding-left: 1.2rem; }
-        .card li { margin-bottom: 0.4rem; }
-        .tag { display: inline-block; padding: 0.25rem 0.7rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem; }
-        .tag-known { background: #d1fae5; color: #065f46; }
-        .tag-unknown { background: #fef3c7; color: #92400e; }
-        .tag-managed { background: #e0e7ff; color: #3730a3; }
-        .ref-list { list-style: none; padding: 0; }
-        .ref-list li { padding: 0.85rem 1.2rem; border-left: 4px solid #0078d4; margin-bottom: 0.75rem; background: #f8f9fa; border-radius: 0 8px 8px 0; }
-        .ref-list a { color: #0078d4; text-decoration: none; font-weight: 600; font-size: 0.95rem; }
-        .ref-list a:hover { text-decoration: underline; }
-        .ref-list .ref-desc { color: #666; font-size: 0.85rem; margin-top: 0.3rem; }
-        .timeline { position: relative; padding-left: 30px; margin: 1.5rem 0; }
-        .timeline::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: #ddd; }
-        .timeline-item { position: relative; margin-bottom: 1.5rem; }
-        .timeline-item::before { content: ''; position: absolute; left: -24px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #0078d4; border: 2px solid #fff; box-shadow: 0 0 0 2px #0078d4; }
-        .timeline-item.delayed::before { background: #d97706; box-shadow: 0 0 0 2px #d97706; }
-        .timeline-label { font-weight: 600; color: #1a1a1a; }
-        .timeline-desc { color: #555; font-size: 0.9rem; }
-        .callout { background: #f0f7ff; border-left: 4px solid #0078d4; padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 0 8px 8px 0; }
-        .callout.warning { border-left-color: #d97706; background: #fffbeb; }
-        .callout.info { border-left-color: #7c3aed; background: #f5f3ff; }
-        .callout.success { border-left-color: #059669; background: #f0fdf4; }
-        .callout-title { font-weight: 600; margin-bottom: 0.3rem; color: #1a1a1a; }
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 1.5rem 0; }
-        @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
-        .section { margin-bottom: 3rem; }
-        .detail-list { margin: 1rem 0; }
-        .detail-item { padding: 1rem 1.5rem; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 0.75rem; background: #fff; }
-        .detail-item strong { color: #0078d4; }
-        .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-left: 0.5rem; }
-        .badge-premium { background: #e0e7ff; color: #3730a3; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How SharePoint Knowledge Retrieval Works in Copilot Studio</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f6f7;color:#1a1a1a;line-height:1.75}
+.container{max-width:960px;margin:0 auto;padding:2rem 1.5rem}
+h1{font-size:1.9rem;color:#0078d4;margin-bottom:.4rem;font-weight:700}
+h2{font-size:1.35rem;color:#0078d4;margin:2.5rem 0 .75rem;border-bottom:2px solid #e0e0e0;padding-bottom:.4rem}
+h3{font-size:1.05rem;color:#1a1a1a;margin:1.5rem 0 .5rem;font-weight:600}
+p,li{color:#333;font-size:.95rem}
+.subtitle{color:#555;margin-bottom:1.5rem;font-size:.95rem}
+a{color:#0078d4;text-decoration:none}
+a:hover{text-decoration:underline}
+.nav{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:2rem;padding:1rem;background:#fff;border-radius:8px;border:1px solid #e0e0e0}
+.nav a{padding:.4rem .8rem;border-radius:4px;font-size:.85rem;font-weight:500;background:#f0f7ff;color:#0078d4}
+.nav a:hover{background:#0078d4;color:#fff;text-decoration:none}
+section{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:2rem;margin-bottom:1.5rem}
+.callout{border-left:4px solid #0078d4;background:#f0f7ff;padding:1rem 1.25rem;margin:1rem 0;border-radius:0 6px 6px 0;font-size:.9rem}
+.callout.warn{border-left-color:#d97706;background:#fffbeb}
+.callout.green{border-left-color:#059669;background:#f0fdf4}
+.callout.purple{border-left-color:#7c3aed;background:#f5f3ff}
+.callout strong{display:block;margin-bottom:.25rem}
+table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+th{background:#0078d4;color:#fff;padding:.7rem .8rem;text-align:left}
+td{padding:.7rem .8rem;border:1px solid #e0e0e0;vertical-align:top}
+tr:nth-child(even){background:#f8f9fa}
+.tag{display:inline-block;padding:.2rem .6rem;border-radius:3px;font-size:.75rem;font-weight:600;margin-right:.4rem}
+.tag-confirmed{background:#d1fae5;color:#065f46}
+.tag-observed{background:#e0e7ff;color:#3730a3}
+.tag-open{background:#fef3c7;color:#92400e}
+.pipeline-step{border:2px solid #e0e0e0;border-radius:10px;padding:1.25rem 1.5rem;margin:.75rem 0;position:relative}
+.pipeline-step.blue{border-color:#0078d4;background:#f0f7ff}
+.pipeline-step.amber{border-color:#d97706;background:#fffbeb}
+.pipeline-step.green{border-color:#059669;background:#f0fdf4}
+.step-num{position:absolute;top:-12px;left:16px;background:#0078d4;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem}
+.arrow{text-align:center;color:#0078d4;font-size:1.2rem;margin:.25rem 0}
+ul{padding-left:1.4rem;margin:.5rem 0}
+li{margin-bottom:.35rem}
+.source{font-size:.82rem;color:#666;margin-top:1rem;padding-top:.75rem;border-top:1px solid #eee}
+.source a{font-size:.82rem}
+.footer{text-align:center;padding:2rem 0;color:#999;font-size:.82rem}
+@media(max-width:600px){.container{padding:1rem}.nav{flex-direction:column}}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>How SharePoint Knowledge Retrieval Works in Copilot Studio</h1>
-        <p class="subtitle">A complete guide to indexing, chunking, Graph retrieval, the Semantic Index, and content refresh — with MS Learn references throughout.</p>
+<div class="container">
 
-        <nav class="tab-nav">
-            <button class="tab-btn active" data-tab="flowchart">Visual Flowchart</button>
-            <button class="tab-btn" data-tab="pipeline">Step-by-Step Pipeline</button>
-            <button class="tab-btn" data-tab="indexing">Semantic Index Deep Dive</button>
-            <button class="tab-btn" data-tab="graph">Microsoft Graph & Retrieval API</button>
-            <button class="tab-btn" data-tab="refresh">Content Refresh</button>
-            <button class="tab-btn" data-tab="two-options">Two SharePoint Options</button>
-            <button class="tab-btn" data-tab="security">Security & Permissions</button>
-            <button class="tab-btn" data-tab="known-unknown">Known vs Unknown</button>
-            <button class="tab-btn" data-tab="references">All MS Learn Links</button>
-        </nav>
+<h1>How SharePoint Knowledge Retrieval Works in Copilot Studio</h1>
+<p class="subtitle">A plain-English guide to how Copilot Studio finds and uses information from SharePoint to answer questions. Includes confirmed product details, observed test results, and open questions — clearly labelled throughout.</p>
 
-        <!-- TAB: VISUAL FLOWCHART -->
-        <div class="tab-content active" id="flowchart">
-            <h2>End-to-End Retrieval Flowchart</h2>
-            <p style="margin-bottom:1rem;">This diagram shows the complete path from a user's question to the grounded response, including all internal components.</p>
+<nav class="nav">
+<a href="#overview">Overview</a>
+<a href="#indexes">The Two Indexes</a>
+<a href="#grounding">Tenant Graph Grounding</a>
+<a href="#pipeline">The Retrieval Pipeline</a>
+<a href="#chunking">Chunking</a>
+<a href="#refresh">Content Refresh</a>
+<a href="#two-options">Two SharePoint Options</a>
+<a href="#security">Security</a>
+<a href="#comparison">SharePoint vs Azure AI Search</a>
+<a href="#known-unknown">What's Known vs Unknown</a>
+<a href="#evaluation">Evaluation Framework</a>
+<a href="#links">MS Learn References</a>
+</nav>
 
-            <div class="flowchart-wrapper">
-                <svg viewBox="0 0 1100 1220" xmlns="http://www.w3.org/2000/svg" style="max-width:1100px; width:100%; height:auto;">
-                    <rect width="1100" height="1220" fill="#fafbfc"/>
-                    <text x="550" y="35" text-anchor="middle" font-size="16" font-weight="700" fill="#0078d4" font-family="Segoe UI, sans-serif">Copilot Studio SharePoint Retrieval — Complete Data Flow</text>
+<!-- OVERVIEW -->
+<section id="overview">
+<h2>Overview — What Happens When Someone Asks a Question</h2>
+<p>When someone asks a Copilot Studio agent a question, the agent does not simply generate an answer from its general knowledge. It first <strong>searches for relevant information</strong> from the configured knowledge sources, then uses that information to write a grounded response.</p>
+<p style="margin-top:.75rem">This search-then-answer approach is called <strong>Retrieval Augmented Generation (RAG)</strong>. The quality of the answer depends directly on the quality of the retrieval. Same AI model, same question — better retrieval means a better answer.</p>
+<div class="callout">
+<strong>Think of it this way</strong>
+Two people take the same exam. One is given three pages of notes. The other is given seven pages covering more topics. The person with more relevant notes writes a better answer — not because they are smarter, but because they had better material to work with. The AI works the same way.
+</div>
+<p class="source">Source: <a href="https://learn.microsoft.com/microsoft-copilot-studio/guidance/retrieval-augmented-generation" target="_blank">Enhance AI responses by using Retrieval Augmented Generation — MS Learn</a></p>
+</section>
 
-                    <!-- Step 1: User -->
-                    <rect x="350" y="55" width="400" height="55" rx="27" fill="#e8f4fd" stroke="#0078d4" stroke-width="2"/>
-                    <text x="550" y="80" text-anchor="middle" font-size="12" font-weight="600" fill="#0078d4" font-family="Segoe UI, sans-serif">User Asks a Question</text>
-                    <text x="550" y="98" text-anchor="middle" font-size="10" fill="#555" font-family="Segoe UI, sans-serif">"What's the part number for a limit switch?"</text>
+<!-- TWO INDEXES -->
+<section id="indexes">
+<h2>Two Indexes — The Key Concept</h2>
+<p>SharePoint has two different indexes. Understanding the difference is essential.</p>
 
-                    <line x1="550" y1="110" x2="550" y2="135" stroke="#0078d4" stroke-width="2" marker-end="url(#ah)"/>
+<h3>The SharePoint Search Index (The Original)</h3>
+<p>This has existed for years. It is a catalogue of every word in every file in SharePoint. When you use the SharePoint search bar, this is what you are searching. It matches <strong>words</strong> — if you search for "limit switch", it finds files containing those exact words. If a document says "auto-wiper position sensor" instead, it will not find it.</p>
 
-                    <!-- Step 2: Moderation -->
-                    <rect x="370" y="135" width="360" height="45" rx="8" fill="#fff" stroke="#ccc" stroke-width="1.5"/>
-                    <text x="550" y="155" text-anchor="middle" font-size="11" font-weight="600" fill="#333" font-family="Segoe UI, sans-serif">1. Message Moderation</text>
-                    <text x="550" y="172" text-anchor="middle" font-size="9.5" fill="#666" font-family="Segoe UI, sans-serif">Filters malicious/harmful content before processing</text>
+<h3>The Semantic Index (The AI Layer)</h3>
+<p>This is a separate, newer layer built on top of the SharePoint search index. It was created for AI and Copilot scenarios.</p>
+<p>It takes everything from the SharePoint search index and adds <strong>understanding of meaning</strong>. It converts content into vectors — numerical representations where similar concepts are grouped together. This means "limit switch", "auto-wiper limit switches", and "position sensor" are all understood as related.</p>
 
-                    <line x1="550" y1="180" x2="550" y2="205" stroke="#0078d4" stroke-width="2" marker-end="url(#ah)"/>
+<table>
+<tr><th>Aspect</th><th>SharePoint Search Index</th><th>Semantic Index</th></tr>
+<tr><td>Available since</td><td>Years ago</td><td>Built for the Copilot era</td></tr>
+<tr><td>How it searches</td><td>Keyword matching only</td><td>Keywords AND meaning</td></tr>
+<tr><td>Admin setup</td><td>Some controls available</td><td>Fully automatic — cannot be disabled</td></tr>
+<tr><td>Built by</td><td>SharePoint</td><td>A separate Microsoft service (referred to as Substrate)</td></tr>
+<tr><td>Who owns it</td><td>SharePoint</td><td>Not Copilot Studio — Studio is a consumer</td></tr>
+</table>
 
-                    <!-- Step 3: Query Rewrite -->
-                    <rect x="280" y="205" width="540" height="105" rx="8" fill="#f0f7ff" stroke="#0078d4" stroke-width="2"/>
-                    <text x="550" y="226" text-anchor="middle" font-size="11" font-weight="700" fill="#0078d4" font-family="Segoe UI, sans-serif">2. Query Rewriting &amp; Optimization</text>
-                    <text x="310" y="248" font-size="9.5" fill="#333" font-family="Segoe UI, sans-serif">• Clarifies meaning and resolves ambiguity</text>
-                    <text x="310" y="264" font-size="9.5" fill="#333" font-family="Segoe UI, sans-serif">• Adds context from last 10 conversation turns</text>
-                    <text x="310" y="280" font-size="9.5" fill="#333" font-family="Segoe UI, sans-serif">• Generates keyword + semantic query variants in parallel</text>
-                    <text x="310" y="296" font-size="9.5" fill="#333" font-family="Segoe UI, sans-serif">• Synonym expansion: "limit switch" → also finds "auto-wiper limit switches"</text>
+<h3>How They Relate</h3>
+<p>The Semantic Index depends on the SharePoint search index. If a file is not in the SharePoint search index (for example, search is disabled for that site), it will not be in the Semantic Index either, and the agent will not find it.</p>
 
-                    <line x1="550" y1="310" x2="550" y2="340" stroke="#0078d4" stroke-width="2" marker-end="url(#ah)"/>
+<div class="callout">
+<strong>One-sentence version</strong>
+The SharePoint search index knows what <em>words</em> are in your files. The Semantic Index understands what your files <em>mean</em>. Copilot Studio with Tenant Graph Grounding uses the Semantic Index.
+</div>
 
-                    <!-- Step 4: Retrieval (big box) -->
-                    <rect x="130" y="340" width="840" height="250" rx="8" fill="#f0f7ff" stroke="#0078d4" stroke-width="2.5"/>
-                    <text x="550" y="363" text-anchor="middle" font-size="12" font-weight="700" fill="#0078d4" font-family="Segoe UI, sans-serif">3. Content Retrieval — Microsoft 365 Copilot Retrieval API</text>
-                    <text x="550" y="380" text-anchor="middle" font-size="9.5" fill="#666" font-family="Segoe UI, sans-serif">Queries the hybrid index powered by the Semantic Index for Microsoft 365 Copilot</text>
+<p class="source">Source: <a href="https://learn.microsoft.com/microsoftsearch/semantic-index-for-copilot" target="_blank">Semantic indexing for Microsoft Copilot — MS Learn</a></p>
+</section>
 
-                    <!-- Lexical branch -->
-                    <rect x="170" y="395" width="340" height="80" rx="6" fill="#fff" stroke="#059669" stroke-width="1.5"/>
-                    <text x="340" y="415" text-anchor="middle" font-size="10.5" font-weight="600" fill="#059669" font-family="Segoe UI, sans-serif">Lexical Search (BM25)</text>
-                    <text x="190" y="433" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">• Traditional keyword matching</text>
-                    <text x="190" y="448" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">• Exact terms: part numbers, codes, IDs</text>
-                    <text x="190" y="463" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">• Term frequency scoring</text>
+<!-- TENANT GRAPH GROUNDING -->
+<section id="grounding">
+<h2>Tenant Graph Grounding with Semantic Search</h2>
+<p>Tenant Graph Grounding is a <strong>setting in Copilot Studio</strong> (Settings &rarr; Generative AI) that controls which search pipeline your agent uses when querying SharePoint content.</p>
 
-                    <!-- Semantic branch -->
-                    <rect x="590" y="395" width="340" height="80" rx="6" fill="#fff" stroke="#7c3aed" stroke-width="1.5"/>
-                    <text x="760" y="415" text-anchor="middle" font-size="10.5" font-weight="600" fill="#7c3aed" font-family="Segoe UI, sans-serif">Semantic / Vector Search</text>
-                    <text x="610" y="433" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">• Vector similarity in embedding space</text>
-                    <text x="610" y="448" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">• Finds conceptually related content</text>
-                    <text x="610" y="463" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">• No exact keyword match needed</text>
+<table>
+<tr><th>Aspect</th><th>Graph Grounding OFF</th><th>Graph Grounding ON</th></tr>
+<tr><td>Search method</td><td>Basic SharePoint search (keywords)</td><td>Full Semantic Index (keywords + meaning + Graph signals)</td></tr>
+<tr><td>Maximum file size</td><td>15 MB</td><td>200 MB</td></tr>
+<tr><td>Results</td><td>Fewer, keyword-matched</td><td>"Greater volume of context, with greater precision"</td></tr>
+<tr><td>Graph signals</td><td>No</td><td>Yes — metadata, activity, people signals</td></tr>
+</table>
 
-                    <!-- Merge lines -->
-                    <line x1="340" y1="475" x2="340" y2="495" stroke="#059669" stroke-width="1.5"/>
-                    <line x1="760" y1="475" x2="760" y2="495" stroke="#7c3aed" stroke-width="1.5"/>
-                    <line x1="340" y1="495" x2="760" y2="495" stroke="#0078d4" stroke-width="1.5"/>
-                    <line x1="550" y1="495" x2="550" y2="510" stroke="#0078d4" stroke-width="1.5" marker-end="url(#ah)"/>
+<h3>Requirements</h3>
+<ul>
+<li>Generative orchestration must be turned on</li>
+<li>Agent authentication must be set to <strong>Authenticate with Microsoft</strong></li>
+<li>At least one Microsoft 365 Copilot licence must be assigned to a user in the tenant</li>
+<li>The agent maker does not need a Microsoft 365 Copilot licence</li>
+<li>Extra cost: Copilot Credits apply for users without Microsoft 365 Copilot licences</li>
+<li>May introduce slightly higher latency</li>
+</ul>
 
-                    <!-- Hybrid ranking -->
-                    <rect x="350" y="510" width="400" height="65" rx="6" fill="#e8f4fd" stroke="#0078d4" stroke-width="1.5"/>
-                    <text x="550" y="530" text-anchor="middle" font-size="10.5" font-weight="600" fill="#0078d4" font-family="Segoe UI, sans-serif">Hybrid Ranking + Graph Signals + Metadata</text>
-                    <text x="550" y="548" text-anchor="middle" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">Reciprocal Rank Fusion • SP column metadata • People/activity signals</text>
-                    <text x="550" y="564" text-anchor="middle" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">Returns top results as text chunks (not full documents)</text>
+<div class="callout">
+<strong>Simple explanation</strong>
+Tenant Graph Grounding is the upgrade switch for SharePoint retrieval. It connects your agent to the Semantic Index instead of basic SharePoint search. It is not a separate feature — it is the difference between standard and premium retrieval.
+</div>
 
-                    <!-- Arrow out -->
-                    <line x1="550" y1="590" x2="550" y2="620" stroke="#0078d4" stroke-width="2" marker-end="url(#ah)"/>
+<p class="source">Source: <a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-copilot-studio#tenant-graph-grounding-with-semantic-search" target="_blank">Knowledge sources summary — Tenant Graph Grounding — MS Learn</a></p>
+</section>
 
-                    <!-- Step 5: Security -->
-                    <rect x="310" y="620" width="480" height="65" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="2"/>
-                    <text x="550" y="643" text-anchor="middle" font-size="11" font-weight="600" fill="#92400e" font-family="Segoe UI, sans-serif">4. Security Trimming (Real-Time)</text>
-                    <text x="550" y="660" text-anchor="middle" font-size="9.5" fill="#666" font-family="Segoe UI, sans-serif">Entra ID delegated auth (OBO) — only content user has read access to</text>
-                    <text x="550" y="676" text-anchor="middle" font-size="9.5" fill="#666" font-family="Segoe UI, sans-serif">Live RBAC check (never cached) • Sensitivity labels enforced</text>
+<!-- PIPELINE -->
+<section id="pipeline">
+<h2>The Retrieval Pipeline — Step by Step</h2>
+<p>When a user asks a question and Tenant Graph Grounding is enabled, the following steps occur. This is specific to the SharePoint knowledge source path.</p>
 
-                    <line x1="550" y1="685" x2="550" y2="715" stroke="#0078d4" stroke-width="2" marker-end="url(#ah)"/>
+<div class="pipeline-step blue">
+<div class="step-num">1</div>
+<h3>Query Rewriting</h3>
+<p>Before searching, Copilot Studio rewrites the user's question to improve retrieval quality:</p>
+<ul>
+<li><strong>Clarifies meaning</strong> — resolves vague references using conversation context</li>
+<li><strong>Adds context from the last 10 messages</strong> — if the user says "what about that one?", the system uses recent messages to determine what "that one" refers to</li>
+<li><strong>Strips filler words</strong> and extracts key terms</li>
+<li><strong>Generates parallel queries</strong> — a keyword version (exact terms) and a semantic version (meaning-based), both run simultaneously</li>
+</ul>
+</div>
+<div class="arrow">&#9660;</div>
 
-                    <!-- Step 6: Summarization -->
-                    <rect x="280" y="715" width="540" height="95" rx="8" fill="#f0fdf4" stroke="#059669" stroke-width="2"/>
-                    <text x="550" y="737" text-anchor="middle" font-size="11" font-weight="700" fill="#059669" font-family="Segoe UI, sans-serif">5. Summarization &amp; Response Generation (LLM)</text>
-                    <text x="310" y="757" font-size="9.5" fill="#333" font-family="Segoe UI, sans-serif">• LLM receives: retrieved chunks + user query + custom instructions + history</text>
-                    <text x="310" y="773" font-size="9.5" fill="#333" font-family="Segoe UI, sans-serif">• Synthesizes grounded response with citations to source SharePoint documents</text>
-                    <text x="310" y="789" font-size="9.5" fill="#333" font-family="Segoe UI, sans-serif">• Applies tone/format/safety rules from agent maker instructions</text>
-                    <text x="310" y="805" font-size="9.5" fill="#999" font-family="Segoe UI, sans-serif">Model: Latest OpenAI model on Azure AI Foundry (within Microsoft trust boundary)</text>
+<div class="pipeline-step blue">
+<div class="step-num">2</div>
+<h3>Content Retrieval</h3>
+<p>The rewritten queries search the <strong>pre-built Semantic Index</strong> — not the actual SharePoint files. Two types of search run in parallel:</p>
+<table>
+<tr><th>Search Type</th><th>How It Works</th><th>Good For</th></tr>
+<tr><td><strong>Lexical (BM25)</strong></td><td>Traditional word matching against indexed content</td><td>Part numbers, product codes, exact names</td></tr>
+<tr><td><strong>Semantic (Vector)</strong></td><td>Meaning-based matching using vector similarity</td><td>Finding related concepts without exact words</td></tr>
+</table>
+<p style="margin-top:.75rem">Results from both searches are combined using <strong>Reciprocal Rank Fusion</strong> — content that scores well in both searches ranks highest.</p>
 
-                    <line x1="550" y1="810" x2="550" y2="840" stroke="#0078d4" stroke-width="2" marker-end="url(#ah)"/>
+<h3>Graph Signals (Additional Ranking)</h3>
+<p>On top of hybrid search, Microsoft Graph provides additional ranking signals:</p>
+<table>
+<tr><th>Signal</th><th>What It Does</th><th>Importance</th></tr>
+<tr><td>Hybrid search score</td><td>How well content matches the query (keywords + meaning)</td><td>Primary — the main driver</td></tr>
+<tr><td>SharePoint metadata</td><td>Custom columns on your library (for example, "Product Line: PureLine")</td><td>Secondary boost</td></tr>
+<tr><td>Activity</td><td>Recently accessed or shared documents get a slight boost</td><td>Minor tiebreaker</td></tr>
+<tr><td>People and social</td><td>Content from close working network ranks slightly higher</td><td>Minor tiebreaker</td></tr>
+</table>
+<p style="margin-top:.75rem">Graph signals only affect ranking of content <strong>within the configured knowledge source</strong>. They do not pull in content from other SharePoint sites or personal OneDrive.</p>
 
-                    <!-- Step 7: Safety -->
-                    <rect x="350" y="840" width="400" height="55" rx="8" fill="#fff" stroke="#ccc" stroke-width="1.5"/>
-                    <text x="550" y="862" text-anchor="middle" font-size="11" font-weight="600" fill="#333" font-family="Segoe UI, sans-serif">6. Safety &amp; Governance Validation</text>
-                    <text x="550" y="880" text-anchor="middle" font-size="9.5" fill="#666" font-family="Segoe UI, sans-serif">Content moderation • Grounding validation • No data used for LLM training</text>
+<h3>How Many Results?</h3>
+<p><span class="tag tag-confirmed">CONFIRMED</span> Standard retrieval returns the <strong>top 3 text extracts per knowledge source</strong>.</p>
+<p><span class="tag tag-confirmed">CONFIRMED</span> With Tenant Graph Grounding, the system provides a "greater volume of context, with greater precision."</p>
+<p><span class="tag tag-open">UNCONFIRMED</span> The exact number of extracts with Graph Grounding is not disclosed.</p>
+<p style="margin-top:.5rem">Top 3 means the top 3 <strong>text extracts</strong> (sections from documents), not the top 3 documents. A single large document can contribute multiple extracts if several sections are relevant.</p>
+</div>
+<div class="arrow">&#9660;</div>
 
-                    <line x1="550" y1="895" x2="550" y2="925" stroke="#059669" stroke-width="2" marker-end="url(#ahg)"/>
+<div class="pipeline-step amber">
+<div class="step-num">3</div>
+<h3>Security Trimming</h3>
+<p>Before results reach the AI, they are filtered based on the user's permissions:</p>
+<ul>
+<li><strong>Entra ID delegated authentication</strong> (On-Behalf-Of) — the agent acts as the user</li>
+<li>Only content the user has <strong>read access</strong> to is returned</li>
+<li>Permissions are checked <strong>live on every query</strong> — never cached</li>
+<li>Microsoft Purview <strong>sensitivity labels</strong> are enforced (SharePoint connector only)</li>
+<li>Users without access receive "no results found" with no indication the content exists</li>
+</ul>
+</div>
+<div class="arrow">&#9660;</div>
 
-                    <!-- Final: Response -->
-                    <rect x="350" y="925" width="400" height="50" rx="25" fill="#d1fae5" stroke="#059669" stroke-width="2"/>
-                    <text x="550" y="948" text-anchor="middle" font-size="11" font-weight="700" fill="#065f46" font-family="Segoe UI, sans-serif">✓ Response Delivered to User</text>
-                    <text x="550" y="965" text-anchor="middle" font-size="9.5" fill="#065f46" font-family="Segoe UI, sans-serif">With clickable citations linking back to SharePoint source docs</text>
+<div class="pipeline-step green">
+<div class="step-num">4</div>
+<h3>Summarisation and Response Generation</h3>
+<p>The AI model receives:</p>
+<ul>
+<li>The retrieved text extracts (the evidence)</li>
+<li>The user's original question</li>
+<li>Conversation history</li>
+<li>Custom instructions set by the agent maker (tone, formatting, safety rules)</li>
+</ul>
+<p>The AI writes a <strong>grounded</strong> response — it should only use information from the retrieved content, not its general training knowledge. It generates <strong>citations</strong> linking back to the original SharePoint source documents.</p>
+<p style="margin-top:.5rem"><span class="tag tag-confirmed">CONFIRMED</span> The model used for generative answers is the latest OpenAI model, hosted on Azure AI Foundry within the Microsoft Services Trust boundary. The model is managed by Microsoft and cannot be changed for generative answers.</p>
+</div>
+<div class="arrow">&#9660;</div>
 
-                    <!-- Side: Semantic Index -->
-                    <rect x="15" y="345" width="100" height="240" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1" stroke-dasharray="4"/>
-                    <text x="65" y="363" text-anchor="middle" font-size="8.5" font-weight="700" fill="#7c3aed" font-family="Segoe UI, sans-serif">SEMANTIC INDEX</text>
-                    <text x="25" y="382" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• Tenant-level</text>
-                    <text x="25" y="396" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• Auto-generated</text>
-                    <text x="25" y="410" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• All SP files</text>
-                    <text x="25" y="424" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• Vectorized</text>
-                    <text x="25" y="438" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• No admin setup</text>
-                    <text x="25" y="452" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• Can't disable</text>
-                    <text x="25" y="474" font-size="8" font-weight="600" fill="#7c3aed" font-family="Segoe UI, sans-serif">REFRESH:</text>
-                    <text x="25" y="488" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">New: daily</text>
-                    <text x="25" y="502" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">Updates: instant</text>
-                    <text x="25" y="524" font-size="8" font-weight="600" fill="#7c3aed" font-family="Segoe UI, sans-serif">FILES:</text>
-                    <text x="25" y="538" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">PDF, DOCX</text>
-                    <text x="25" y="552" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">PPTX, ASPX</text>
-                    <text x="25" y="566" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">OneNote</text>
-                    <text x="25" y="580" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">Up to 512MB</text>
+<div class="pipeline-step">
+<div class="step-num">5</div>
+<h3>Safety and Governance Validation</h3>
+<ul>
+<li><strong>Content moderation</strong> — blocks harmful, offensive, or non-compliant content</li>
+<li><strong>Grounding validation</strong> — checks the answer is based on retrieved content, catches hallucinated claims</li>
+<li>Configurable moderation level (Lowest to Highest, default is High)</li>
+<li><strong>No customer data is used to train any language model</strong></li>
+</ul>
+</div>
+<div class="arrow">&#9660;</div>
 
-                    <!-- Side: Graph -->
-                    <rect x="985" y="345" width="100" height="240" rx="6" fill="#f0f7ff" stroke="#0078d4" stroke-width="1" stroke-dasharray="4"/>
-                    <text x="1035" y="363" text-anchor="middle" font-size="8.5" font-weight="700" fill="#0078d4" font-family="Segoe UI, sans-serif">MS GRAPH</text>
-                    <text x="995" y="382" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• User identity</text>
-                    <text x="995" y="396" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• Org chart</text>
-                    <text x="995" y="410" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• Collaboration</text>
-                    <text x="995" y="424" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• Activity signals</text>
-                    <text x="995" y="438" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• People match</text>
-                    <text x="995" y="460" font-size="8" font-weight="600" fill="#0078d4" font-family="Segoe UI, sans-serif">RANKING:</text>
-                    <text x="995" y="474" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• Personalization</text>
-                    <text x="995" y="488" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• Social matching</text>
-                    <text x="995" y="502" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">• Recency</text>
-                    <text x="995" y="524" font-size="8" font-weight="600" fill="#0078d4" font-family="Segoe UI, sans-serif">METADATA:</text>
-                    <text x="995" y="538" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">SP columns</text>
-                    <text x="995" y="552" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">Author, date</text>
-                    <text x="995" y="566" font-size="8" fill="#555" font-family="Segoe UI, sans-serif">File type</text>
+<div class="pipeline-step green">
+<div class="step-num" style="background:#059669;">&#10003;</div>
+<h3>Response Delivered</h3>
+<p>The user sees the answer with clickable citations linking to the original SharePoint documents.</p>
+</div>
 
-                    <!-- Legend -->
-                    <rect x="280" y="1000" width="540" height="100" rx="8" fill="#fff" stroke="#e0e0e0" stroke-width="1"/>
-                    <text x="550" y="1020" text-anchor="middle" font-size="11" font-weight="600" fill="#333" font-family="Segoe UI, sans-serif">Legend</text>
-                    <rect x="300" y="1035" width="14" height="14" rx="2" fill="#f0f7ff" stroke="#0078d4" stroke-width="1"/>
-                    <text x="322" y="1046" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">Core intelligence layers (query rewriting, hybrid retrieval)</text>
-                    <rect x="300" y="1055" width="14" height="14" rx="2" fill="#fffbeb" stroke="#d97706" stroke-width="1"/>
-                    <text x="322" y="1066" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">Security enforcement (real-time, per-user RBAC)</text>
-                    <rect x="300" y="1075" width="14" height="14" rx="2" fill="#f0fdf4" stroke="#059669" stroke-width="1"/>
-                    <text x="322" y="1086" font-size="9" fill="#444" font-family="Segoe UI, sans-serif">Generation (LLM synthesis with grounding + citations)</text>
+<p class="source">Source: <a href="https://learn.microsoft.com/microsoft-copilot-studio/guidance/retrieval-augmented-generation" target="_blank">Enhance AI responses by using RAG — MS Learn</a></p>
+</section>
 
-                    <defs>
-                        <marker id="ah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#0078d4"/></marker>
-                        <marker id="ahg" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#059669"/></marker>
-                    </defs>
-                </svg>
-            </div>
+<!-- CHUNKING -->
+<section id="chunking">
+<h2>Chunking — How Documents Are Broken Into Sections</h2>
+<p>Before retrieval can work, documents need to be divided into smaller searchable sections. A 150-page PDF cannot be stored as one block — it must be broken into pieces so individual sections can be found and matched.</p>
 
-            <div class="callout">
-                <div class="callout-title">Sources</div>
-                <p><a href="https://learn.microsoft.com/microsoft-copilot-studio/guidance/retrieval-augmented-generation" target="_blank">Enhance AI responses by using RAG</a> · <a href="https://learn.microsoft.com/microsoftsearch/semantic-index-for-copilot" target="_blank">Semantic indexing for Microsoft Copilot</a> · <a href="https://learn.microsoft.com/microsoft-365/copilot/extensibility/api/ai-services/retrieval/overview" target="_blank">Copilot Retrieval API</a></p>
-            </div>
-        </div>
+<h3>What Is Confirmed</h3>
+<ul>
+<li>Microsoft "dynamically indexes documents and breaks content into meaningful chunks"</li>
+<li>The system uses "advanced query processing to surface the most relevant information"</li>
+<li>It uses "the same enterprise-grade retrieval stack that powers Microsoft 365 Copilot"</li>
+<li>Output is "relevant text extracts" — not full documents</li>
+</ul>
 
-        <!-- TAB: STEP-BY-STEP PIPELINE -->
-        <div class="tab-content" id="pipeline">
-            <h2>The RAG Pipeline: Step by Step</h2>
-            <p style="margin-bottom:1.5rem; color:#555;">When a user asks a question to a Copilot Studio agent grounded in SharePoint, this is the exact sequence:</p>
-            <div class="flow-container">
-                <div class="flow-step"><div class="flow-step-number">1</div><h3>User Sends a Message</h3><p style="color:#555;">User types a question in Teams, web chat, Power Apps, or another channel. Sent encrypted (HTTPS) to the Copilot Studio runtime.</p></div>
-                <div class="flow-arrow"></div>
-                <div class="flow-step"><div class="flow-step-number">2</div><h3>Message Moderation</h3><p style="color:#555;">Parses input and filters malicious, harmful, or policy-violating content before any retrieval begins.</p></div>
-                <div class="flow-arrow"></div>
-                <div class="flow-step highlight"><div class="flow-step-number">3</div><h3>Query Rewriting & Optimization</h3><p style="color:#555; margin-bottom:0.75rem;">Before searching, the system optimizes the query:</p><ul style="color:#444; padding-left:1.2rem;"><li><strong>Clarifies meaning</strong> — resolves ambiguity</li><li><strong>Adds contextual signals</strong> — last 10 conversation turns</li><li><strong>Improves keyword matching</strong> — search-friendly variants</li><li><strong>Parallel queries</strong> — generates both keyword and semantic versions</li><li><strong>Synonym expansion</strong> — "limit switch" also matches "position sensor", "auto-wiper limit switches"</li></ul><div class="callout" style="margin-top:1rem;"><p style="font-size:0.85rem;"><strong>Example:</strong> "what's the part number for a limit switch?" → keyword: "limit switch part number" + semantic: concept of "replacement component identifier for motion-limiting device"</p></div></div>
-                <div class="flow-arrow"></div>
-                <div class="flow-step highlight"><div class="flow-step-number">4</div><h3>Content Retrieval via M365 Copilot Retrieval API</h3><p style="color:#555; margin-bottom:0.75rem;">Queries hit the <strong>hybrid index</strong> powering Microsoft 365 Copilot:</p><div class="two-col" style="margin:1rem 0;"><div style="background:#f0fdf4; padding:1rem; border-radius:8px; border:1px solid #bbf7d0;"><h3 style="color:#059669; font-size:0.95rem;">Lexical Search (BM25)</h3><ul style="font-size:0.85rem; padding-left:1rem; color:#444;"><li>Traditional keyword matching</li><li>Good for exact terms, part numbers</li><li>Scores by term frequency</li></ul></div><div style="background:#f5f3ff; padding:1rem; border-radius:8px; border:1px solid #ddd6fe;"><h3 style="color:#7c3aed; font-size:0.95rem;">Semantic / Vector Search</h3><ul style="font-size:0.85rem; padding-left:1rem; color:#444;"><li>Vector similarity in embedding space</li><li>Conceptually related content</li><li>No exact keyword needed</li></ul></div></div><p style="color:#555; margin-top:0.75rem;"><strong>Combined + ranked</strong> using Reciprocal Rank Fusion + metadata signals (SP column metadata, Graph activity, people matching).</p><div class="callout success" style="margin-top:1rem;"><div class="callout-title">How many results?</div><p style="font-size:0.85rem;">Standard: <strong>top 3 per source</strong>. With Tenant Graph Grounding: "greater volume of context with greater precision" + files up to 200MB.</p></div></div>
-                <div class="flow-arrow"></div>
-                <div class="flow-step warning"><div class="flow-step-number">5</div><h3>Security Trimming (Real-Time)</h3><ul style="color:#444; padding-left:1.2rem; margin-top:0.5rem;"><li><strong>Entra ID delegated auth</strong> (OBO) — agent acts as the user</li><li>Only content user has <strong>read access</strong> to is returned</li><li>Permissions checked <strong>live</strong> — never cached</li><li>Sensitivity labels enforced</li><li>Users without access get generic "no results" (no data leak)</li></ul></div>
-                <div class="flow-arrow"></div>
-                <div class="flow-step success"><div class="flow-step-number">6</div><h3>Summarization & Response Generation</h3><p style="color:#555;">LLM receives: retrieved chunks + original query + custom instructions + history.</p><ul style="color:#444; padding-left:1.2rem; margin-top:0.5rem;"><li>Synthesizes grounded response</li><li>Generates citations to source docs</li><li>Applies tone/format rules from maker instructions</li></ul><div class="callout info" style="margin-top:0.75rem;"><p style="font-size:0.85rem;"><strong>Model:</strong> Latest OpenAI model on Azure AI Foundry, within Microsoft Services Trust boundary.</p></div></div>
-                <div class="flow-arrow"></div>
-                <div class="flow-step"><div class="flow-step-number">7</div><h3>Safety & Governance</h3><p style="color:#555;">Content moderation • grounding validation • compliance. <strong>No customer data trains any LLM.</strong></p></div>
-                <div class="flow-arrow"></div>
-                <div class="flow-step" style="border-color:#059669; background:#f0fdf4;"><div class="flow-step-number" style="background:#059669;">✓</div><h3>Response Delivered</h3><p style="color:#555;">User gets the answer with clickable citation links to SharePoint source documents.</p></div>
-            </div>
-            <div class="callout"><div class="callout-title">Source</div><p><a href="https://learn.microsoft.com/microsoft-copilot-studio/guidance/retrieval-augmented-generation" target="_blank">Enhance AI responses by using RAG — MS Learn</a></p></div>
-        </div>
+<h3>What Is Not Disclosed</h3>
+<table>
+<tr><th>Detail</th><th>Status</th></tr>
+<tr><td>Chunk size (for example, 512 tokens)</td><td><span class="tag tag-open">NOT DISCLOSED</span></td></tr>
+<tr><td>Whether chunking is fixed-size, variable, or semantic</td><td><span class="tag tag-open">NOT DISCLOSED</span></td></tr>
+<tr><td>Whether overlap is used between chunks</td><td><span class="tag tag-open">NOT DISCLOSED</span></td></tr>
+<tr><td>The embedding model used to create vectors</td><td><span class="tag tag-open">NOT DISCLOSED</span></td></tr>
+<tr><td>How tables and complex layouts are handled</td><td><span class="tag tag-open">NOT DISCLOSED</span></td></tr>
+</table>
 
-        <!-- TAB: SEMANTIC INDEX -->
-        <div class="tab-content" id="indexing">
-            <h2>The Semantic Index — Deep Dive</h2>
-            <div class="section">
-                <h3>What is it?</h3>
-                <p style="color:#444; margin:0.75rem 0;">A <strong>hybrid index</strong> (lexical + vector) auto-generated from content in Microsoft Graph. Maps organizational data into an advanced semantic index for search relevance.</p>
-                <div class="card-grid">
-                    <div class="card"><div class="card-icon">🏢</div><h3>Tenant-Level Index</h3><ul><li>Organization-wide</li><li>All text-based SP Online files accessible by 2+ users</li><li>Auto-enabled, no admin setup, cannot disable</li><li>Every M365 Copilot customer has this</li></ul></div>
-                    <div class="card"><div class="card-icon">👤</div><h3>User-Level Index</h3><ul><li>Personalized per user</li><li>Emails, docs you interact with, docs mentioning you</li><li>Requires M365 Copilot license assigned</li><li>Stored where mailbox is located</li></ul></div>
-                    <div class="card"><div class="card-icon">🔢</div><h3>Vectorization</h3><ul><li>Content → numerical vectors (embeddings)</li><li>Similar concepts clustered in vector space</li><li>Enables conceptual search beyond exact match</li><li>Word relationships: tech/technology/technologies</li><li>Synonym capture: praised → elated, excited, amazed</li></ul></div>
-                </div>
-            </div>
-            <div class="section">
-                <h3>Chunking — What's Known</h3>
-                <div class="callout warning"><div class="callout-title">Exact chunking strategy is NOT publicly documented</div><p>Microsoft does not disclose chunk sizes, overlap, or embedding model. Fully managed and opaque.</p></div>
-                <p style="color:#444; margin:1rem 0;"><strong>What IS documented:</strong></p>
-                <div class="detail-list">
-                    <div class="detail-item"><strong>Meaningful chunks:</strong> System "dynamically indexes documents" and "breaks content into meaningful chunks"</div>
-                    <div class="detail-item"><strong>Advanced processing:</strong> "Advanced query processing to surface the most relevant information"</div>
-                    <div class="detail-item"><strong>Same stack:</strong> "Same enterprise-grade retrieval stack that powers Microsoft 365 Copilot"</div>
-                    <div class="detail-item"><strong>Output format:</strong> Returns "relevant text extracts" / "text snippets" — not full documents</div>
-                    <div class="detail-item"><strong>Image/table support:</strong> PDF image/table recognition for uploaded files (Dataverse path)</div>
-                </div>
-            </div>
-            <div class="section">
-                <h3>Supported Content Types</h3>
-                <table class="comparison-table"><thead><tr><th>File Type</th><th>User-Level</th><th>Tenant-Level</th></tr></thead><tbody><tr><td>Word (doc/docx)</td><td>✅</td><td>✅</td></tr><tr><td>PowerPoint (pptx)</td><td>✅</td><td>✅</td></tr><tr><td>PDF</td><td>✅</td><td>✅</td></tr><tr><td>Web pages (aspx)</td><td>✅</td><td>✅</td></tr><tr><td>OneNote</td><td>✅</td><td>✅</td></tr><tr><td>User Mailbox</td><td>✅</td><td>N/A</td></tr><tr><td>Copilot connectors</td><td>N/A</td><td>✅</td></tr><tr><td><strong>Max size</strong></td><td colspan="2"><strong>512 MB</strong> (PDF, PPTX, DOCX)</td></tr></tbody></table>
-            </div>
-            <div class="callout"><div class="callout-title">Source</div><p><a href="https://learn.microsoft.com/microsoftsearch/semantic-index-for-copilot" target="_blank">Semantic indexing for Microsoft Copilot — MS Learn</a></p></div>
-        </div>
+<h3>Why Microsoft Does Not Share This</h3>
+<p>In Copilot Studio Office Hours, the product team confirmed:</p>
+<ul>
+<li>The chunking and indexing pipeline is <strong>not owned by Copilot Studio</strong> — it is managed by the underlying Microsoft 365 retrieval service (referred to as Substrate)</li>
+<li>Copilot Studio consumes an internal API that returns search results — it does not perform the indexing</li>
+<li>Implementation details may be <strong>optimised or changed</strong> in the future</li>
+<li>Any specific detail shared today might not remain accurate over time</li>
+<li>Customers should avoid basing architectural decisions on undocumented internal implementation details</li>
+<li>The recommended approach is to <strong>benchmark actual results</strong> using representative questions</li>
+</ul>
 
-        <!-- TAB: GRAPH & RETRIEVAL API -->
-        <div class="tab-content" id="graph">
-            <h2>Microsoft Graph & The Copilot Retrieval API</h2>
-            <div class="section">
-                <h3>What Microsoft Graph Provides</h3>
-                <div class="card-grid">
-                    <div class="card"><div class="card-icon">📊</div><h3>Content & Signals</h3><ul><li>All SharePoint files, OneDrive docs, emails</li><li>Who authored, edited, shared content</li><li>Org chart, distribution groups</li><li>Recent activity patterns</li><li>Personalization + social matching for ranking</li></ul></div>
-                    <div class="card"><div class="card-icon">🔑</div><h3>The Retrieval API</h3><ul><li>Returns relevant text chunks from hybrid index</li><li>RAG without replicating/indexing/chunking yourself</li><li>Automatic query transformations for best results</li><li>Supports KQL filtering (site, type, author, date)</li><li>Requires Files.Read.All + Sites.Read.All</li><li>Output: text extracts with metadata</li></ul></div>
-                </div>
-            </div>
-            <div class="section">
-                <h3>Tenant Graph Grounding with Semantic Search <span class="badge badge-premium">PREMIUM</span></h3>
-                <table class="comparison-table"><thead><tr><th>Aspect</th><th>Details</th></tr></thead><tbody><tr><td>What it does</td><td>"Cutting-edge internal retrieval tools" → <strong>greater volume of context with greater precision</strong></td></tr><tr><td>Requirement</td><td>Generative orchestration ON + at least one M365 Copilot license in tenant</td></tr><tr><td>Cost</td><td>Extra Copilot Credits for users without M365 Copilot licenses</td></tr><tr><td>File size</td><td>Matches up to <strong>200 MB</strong> (vs 15 MB without)</td></tr><tr><td>Latency</td><td>Slightly higher due to system complexity</td></tr><tr><td>Maker license</td><td>Does NOT need M365 Copilot license to create agent</td></tr></tbody></table>
-            </div>
-            <div class="callout"><div class="callout-title">Sources</div><p><a href="https://learn.microsoft.com/microsoft-365/copilot/extensibility/api/ai-services/retrieval/overview" target="_blank">Retrieval API Overview</a> · <a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-copilot-studio" target="_blank">Knowledge Sources Summary</a></p></div>
-        </div>
+<div class="callout purple">
+<strong>Important distinction</strong>
+<strong>Chunk size</strong> (how big each section is) and <strong>number of chunks retrieved</strong> (how many sections go to the AI) are two different things. The number retrieved is documented (top 3 standard, more with Graph Grounding). The chunk size is not disclosed.
+</div>
 
-        <!-- TAB: CONTENT REFRESH -->
-        <div class="tab-content" id="refresh">
-            <h2>How Content is Refreshed</h2>
-            <div class="two-col">
-                <div><h3 style="color:#7c3aed;">SharePoint Connector (Graph-backed)</h3><p style="color:#555; margin-bottom:1rem;">Content stays in SharePoint — queried live.</p><div class="timeline"><div class="timeline-item"><div class="timeline-label">New documents (2+ user access)</div><div class="timeline-desc">Indexed <strong>daily</strong></div></div><div class="timeline-item"><div class="timeline-label">Updated documents (already indexed)</div><div class="timeline-desc">Changes indexed <strong>immediately</strong></div></div><div class="timeline-item"><div class="timeline-label">User mailbox content</div><div class="timeline-desc"><strong>Near real-time</strong></div></div><div class="timeline-item"><div class="timeline-label">Admin involvement</div><div class="timeline-desc"><strong>None</strong> — fully automatic</div></div></div><div class="callout"><p style="font-size:0.85rem;">SP site must remain searchable (Settings → Search and offline availability → Allow).</p></div></div>
-                <div><h3 style="color:#0078d4;">File Upload (Dataverse-backed)</h3><p style="color:#555; margin-bottom:1rem;">Files copied into Dataverse, synced on schedule.</p><div class="timeline"><div class="timeline-item delayed"><div class="timeline-label">Automatic sync</div><div class="timeline-desc">Every <strong>4–6 hours</strong></div></div><div class="timeline-item delayed"><div class="timeline-label">First-time indexing</div><div class="timeline-desc"><strong>5–30 minutes</strong></div></div><div class="timeline-item"><div class="timeline-label">Deleted content</div><div class="timeline-desc">Removed after next sync</div></div><div class="timeline-item delayed"><div class="timeline-label">Manual trigger</div><div class="timeline-desc"><strong>Not available</strong></div></div></div><div class="callout warning"><p style="font-size:0.85rem;">Cannot force a manual refresh. 4-6 hour delay for updates.</p></div></div>
-            </div>
-            <div class="callout" style="margin-top:2rem;"><div class="callout-title">Sources</div><p><a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-unstructured-data" target="_blank">Unstructured data as knowledge source</a> · <a href="https://learn.microsoft.com/microsoftsearch/semantic-index-for-copilot#index-updates" target="_blank">Semantic Index — Index Updates</a></p></div>
-        </div>
+<p class="source">Sources: <a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-unstructured-data" target="_blank">Unstructured data as a knowledge source — MS Learn</a> · Office Hours guidance (August 2026)</p>
+</section>
 
-        <!-- TAB: TWO OPTIONS -->
-        <div class="tab-content" id="two-options">
-            <h2>Two SharePoint Options in Copilot Studio</h2>
-            <p style="color:#555; margin-bottom:1.5rem;">Two completely different pipelines depending on which option you pick:</p>
-            <div class="two-col">
-                <div class="card" style="border-color:#0078d4; border-width:2px;"><h3 style="color:#0078d4;">Option 1: File Upload → SharePoint</h3><p style="color:#888; font-size:0.85rem; margin-bottom:1rem;">Upload files area in Add Knowledge</p><ul style="color:#444;"><li>Files <strong>copied into Dataverse</strong></li><li>Vector embeddings created</li><li>Image/table recognition (PDFs)</li><li>Syncs every 4–6 hours</li><li>Consumes Dataverse storage</li><li>No sensitivity labels</li><li>Max 500 objects, 512 MB files</li></ul></div>
-                <div class="card" style="border-color:#7c3aed; border-width:2px;"><h3 style="color:#7c3aed;">Option 2: SharePoint Connector</h3><p style="color:#888; font-size:0.85rem; margin-bottom:1rem;">Dedicated SharePoint tile in Add Knowledge</p><ul style="color:#444;"><li>Content <strong>stays in SharePoint</strong> (live)</li><li>Microsoft Graph + Semantic Index</li><li>M365 Copilot Retrieval API</li><li>Real-time freshness</li><li>No Dataverse storage</li><li>Sensitivity labels supported</li><li>Tenant Graph Grounding available</li></ul></div>
-            </div>
-            <table class="comparison-table" style="margin-top:2rem;"><thead><tr><th>Aspect</th><th style="background:#0078d4;">File Upload</th><th style="background:#7c3aed;">SharePoint Connector</th></tr></thead><tbody><tr><td>Content storage</td><td>Copied into Dataverse</td><td>Stays in SharePoint</td></tr><tr><td>Search mechanism</td><td>Dataverse semantic index</td><td>Graph hybrid index (lexical + vector)</td></tr><tr><td>Freshness</td><td>4–6 hours</td><td>Real-time</td></tr><tr><td>Dataverse storage</td><td>Yes</td><td>No</td></tr><tr><td>Sensitivity labels</td><td>No</td><td>Yes</td></tr><tr><td>Query filters</td><td>None</td><td>Author, date, title</td></tr><tr><td>Max file size</td><td>512 MB</td><td>15 MB / 200 MB (Graph Grounding)</td></tr><tr><td>Graph Grounding</td><td>N/A</td><td>Available (premium)</td></tr></tbody></table>
-            <div class="callout" style="margin-top:1.5rem;"><div class="callout-title">Source</div><p><a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-unstructured-data" target="_blank">Unstructured data as a knowledge source — Two SharePoint options FAQ</a></p></div>
-        </div>
+<!-- CONTENT REFRESH -->
+<section id="refresh">
+<h2>Content Refresh — When Do Changes Appear?</h2>
+<p>The agent searches a <strong>pre-built index</strong>, not the actual SharePoint files in real time. The Semantic Index is built in the background before anyone asks a question. At query time, the system searches this already-built index.</p>
 
-        <!-- TAB: SECURITY -->
-        <div class="tab-content" id="security">
-            <h2>Security, Permissions & Compliance</h2>
-            <div class="card-grid">
-                <div class="card"><div class="card-icon">🔐</div><h3>Authentication</h3><ul><li>Entra ID delegated auth (OBO)</li><li>Agent acts as the user</li><li>Only surfaces content user can read</li><li>Must be authenticated before results return</li></ul></div>
-                <div class="card"><div class="card-icon">🛡️</div><h3>Security Trimming</h3><ul><li>Real-time RBAC on every query</li><li>Never cached — always live check</li><li>SP site/library/file permissions</li><li>No data leak indication</li></ul></div>
-                <div class="card"><div class="card-icon">🏷️</div><h3>Sensitivity Labels</h3><ul><li>Supported (SharePoint connector only)</li><li>Included in search trimming</li><li>Highest-priority label shown in response</li><li>Password-protected files blocked</li></ul></div>
-                <div class="card"><div class="card-icon">📍</div><h3>Data Residency</h3><ul><li>Index stored where SP site is located</li><li>EU Data Boundary: EU/EFTA datacenter</li><li>Multi-geo: all boundaries respected</li><li>Isolated tenant container</li></ul></div>
-                <div class="card"><div class="card-icon">🚫</div><h3>No LLM Training</h3><ul><li>Customer data NEVER trains any LLM</li><li>GDPR compliant</li><li>BYOK supported</li><li>Encrypted in transit + at rest</li></ul></div>
-                <div class="card"><div class="card-icon">⚙️</div><h3>DLP & Governance</h3><ul><li>Power Platform DLP policies</li><li>Can allow/block SP as source</li><li>Sites excludable from indexing</li><li>Agent-level: disable generative answers</li></ul></div>
-            </div>
-            <div class="callout warning" style="margin-top:2rem;"><div class="callout-title">⚠️ Oversharing Risk</div><p>Audit SharePoint permissions before enabling. Loose sharing = sensitive docs surfacing to wrong people. Switch defaults to "Specific people", use SharePoint Advanced Management to audit, start with a pilot on well-governed sites.</p></div>
-            <div class="callout" style="margin-top:1rem;"><div class="callout-title">Sources</div><p><a href="https://learn.microsoft.com/microsoft-copilot-studio/security-and-governance" target="_blank">Security & Governance</a> · <a href="https://learn.microsoft.com/purview/ai-copilot-studio" target="_blank">Purview for Studio</a> · <a href="https://learn.microsoft.com/microsoft-365/copilot/employee-self-service/optimization-sharepoint" target="_blank">Optimizing SP Content</a></p></div>
-        </div>
+<h3>SharePoint Connector (Graph-backed)</h3>
+<table>
+<tr><th>Event</th><th>When the Agent Knows</th><th>Status</th></tr>
+<tr><td>Update an existing document</td><td><strong>Immediately</strong></td><td><span class="tag tag-confirmed">CONFIRMED</span></td></tr>
+<tr><td>Add a new document (accessible by 2+ users)</td><td>Within approximately <strong>one day</strong></td><td><span class="tag tag-confirmed">CONFIRMED</span></td></tr>
+<tr><td>Delete a document</td><td>Timing not specified</td><td><span class="tag tag-open">UNCONFIRMED</span></td></tr>
+<tr><td>Manual refresh trigger</td><td>Not available</td><td><span class="tag tag-confirmed">CONFIRMED</span></td></tr>
+</table>
 
-        <!-- TAB: KNOWN vs UNKNOWN -->
-        <div class="tab-content" id="known-unknown">
-            <h2>Known vs Unknown (Black Box)</h2>
-            <h3><span class="tag tag-known">DOCUMENTED</span> What We Know</h3>
-            <table class="comparison-table" style="margin:1rem 0 2rem;"><thead><tr><th>Aspect</th><th>Detail</th></tr></thead><tbody><tr><td>Index type</td><td>Hybrid (lexical + vector)</td></tr><tr><td>Results</td><td>Top 3 per source (standard). "Greater volume" with Graph Grounding.</td></tr><tr><td>Query rewriting</td><td>Last 10 turns, synonym expansion, parallel keyword+semantic</td></tr><tr><td>Supported files</td><td>PDF, DOCX, PPTX, ASPX, OneNote — up to 512 MB</td></tr><tr><td>Freshness</td><td>New: daily. Updates: immediate. Dataverse: 4-6 hrs.</td></tr><tr><td>Security</td><td>Entra ID OBO, live RBAC, sensitivity labels</td></tr><tr><td>Residency</td><td>SP site region. EUDB. Multi-geo.</td></tr><tr><td>Training</td><td>Customer data NEVER trains LLMs</td></tr><tr><td>Metadata</td><td>SP columns as ranking signals when scoped to library</td></tr><tr><td>Graph signals</td><td>People, activity, org chart, social matching</td></tr></tbody></table>
-            <h3><span class="tag tag-unknown">NOT DISCLOSED</span> Black Box</h3>
-            <table class="comparison-table" style="margin:1rem 0 2rem;"><thead><tr><th>Aspect</th><th>Status</th></tr></thead><tbody><tr><td>Chunk size</td><td>Not documented — "meaningful chunks"</td></tr><tr><td>Chunk overlap</td><td>Not documented</td></tr><tr><td>Embedding model</td><td>Internal Microsoft model — not named</td></tr><tr><td>Vector dimensions</td><td>Not disclosed</td></tr><tr><td>Exact count with Graph Grounding</td><td>"Greater volume" only</td></tr><tr><td>Re-ranking algorithm</td><td>Beyond "hybrid + metadata" — not specified</td></tr><tr><td>Query transformation logic</td><td>High-level description only</td></tr></tbody></table>
-            <div class="callout info"><div class="callout-title">Implication for Comparison</div><p>Can't compare architecture 1:1. Compare <strong>output</strong>: answer quality, citation relevance, accuracy, latency, coverage.</p></div>
-        </div>
+<h3>File Upload (Dataverse-backed)</h3>
+<table>
+<tr><th>Event</th><th>When the Agent Knows</th><th>Status</th></tr>
+<tr><td>Update an existing document</td><td>After next sync — <strong>4 to 6 hours</strong></td><td><span class="tag tag-confirmed">CONFIRMED</span></td></tr>
+<tr><td>Add a new document</td><td>Initial: 5–30 minutes, then 4–6 hour sync</td><td><span class="tag tag-confirmed">CONFIRMED</span></td></tr>
+<tr><td>Delete a document</td><td>After next sync</td><td><span class="tag tag-confirmed">CONFIRMED</span></td></tr>
+<tr><td>Manual refresh trigger</td><td>Not available</td><td><span class="tag tag-confirmed">CONFIRMED</span></td></tr>
+</table>
 
-        <!-- TAB: REFERENCES -->
-        <div class="tab-content" id="references">
-            <h2>All Microsoft Learn References</h2>
-            <h3>Semantic Index & Architecture</h3>
-            <ul class="ref-list">
-                <li><a href="https://learn.microsoft.com/microsoftsearch/semantic-index-for-copilot" target="_blank">Semantic indexing for Microsoft Copilot</a><div class="ref-desc">The definitive page — vectorization, data flows, content types, refresh, admin, security, residency.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-365/copilot/microsoft-365-copilot-architecture" target="_blank">Microsoft Copilot architecture</a><div class="ref-desc">Full data flow diagram: prompt → grounding → Graph → LLM → response.</div></li>
-            </ul>
-            <h3 style="margin-top:2rem;">Retrieval API & Graph</h3>
-            <ul class="ref-list">
-                <li><a href="https://learn.microsoft.com/microsoft-365/copilot/extensibility/api/ai-services/retrieval/overview" target="_blank">M365 Copilot Retrieval API overview</a><div class="ref-desc">The API powering SharePoint retrieval — query transformation, hybrid index, why it outperforms basic RAG.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-365/copilot/extensibility/api/ai-services/retrieval/copilotroot-retrieval" target="_blank">Retrieve grounding data (API reference)</a><div class="ref-desc">HTTP spec, permissions, filter expressions, response format, examples.</div></li>
-            </ul>
-            <h3 style="margin-top:2rem;">Copilot Studio Knowledge</h3>
-            <ul class="ref-list">
-                <li><a href="https://learn.microsoft.com/microsoft-copilot-studio/guidance/retrieval-augmented-generation" target="_blank">Enhance AI responses by using RAG</a><div class="ref-desc">4-step pipeline, all sources compared, security/compliance.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-unstructured-data" target="_blank">Unstructured data as a knowledge source</a><div class="ref-desc">Dataverse ingestion, vector embeddings, two SP options, sync frequency, security.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-copilot-studio" target="_blank">Knowledge sources summary</a><div class="ref-desc">Tenant Graph Grounding setting, orchestration limits, moderation.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-add-sharepoint" target="_blank">Add SharePoint as a knowledge source</a><div class="ref-desc">Setup, auth config, Graph Grounding recommendation.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-copilot-studio/agents-experience/knowledge-sources-overview" target="_blank">Available knowledge sources for agents</a><div class="ref-desc">All source types + decision table.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-copilot-studio/guidance/custom-knowledge-sources" target="_blank">Custom knowledge sources (OnKnowledgeRequested)</a><div class="ref-desc">Build custom sources calling your own search API within Studio's pipeline.</div></li>
-            </ul>
-            <h3 style="margin-top:2rem;">Security & Governance</h3>
-            <ul class="ref-list">
-                <li><a href="https://learn.microsoft.com/microsoft-copilot-studio/security-and-governance" target="_blank">Security and governance</a><div class="ref-desc">DLP, compliance, Agent 365, environment routing.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-copilot-studio/security-faq" target="_blank">Security FAQs</a><div class="ref-desc">Confidential sites, DLP config, encryption, governance.</div></li>
-                <li><a href="https://learn.microsoft.com/purview/ai-copilot-studio" target="_blank">Microsoft Purview for Copilot Studio</a><div class="ref-desc">Sensitivity labels, DLP, encryption for SP knowledge.</div></li>
-                <li><a href="https://learn.microsoft.com/sharepoint/manage-access-agents-in-sharepoint" target="_blank">Manage access to agents in SharePoint</a><div class="ref-desc">Restricted access control, SAM, Purview DLP.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-365/copilot/employee-self-service/optimization-sharepoint" target="_blank">Optimizing SharePoint content for agents</a><div class="ref-desc">Prevent oversharing, least privilege, content quality.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-copilot-studio/guidance/sec-gov-intro" target="_blank">Governance overview</a><div class="ref-desc">Full framework — requirements, zones, testing, monitoring.</div></li>
-            </ul>
-            <h3 style="margin-top:2rem;">Troubleshooting & Billing</h3>
-            <ul class="ref-list">
-                <li><a href="https://learn.microsoft.com/troubleshoot/power-platform/copilot-studio/generative-answers/sharepoint-no-response" target="_blank">SharePoint sources don't return results</a><div class="ref-desc">Top 3 limit, indexing delays, permissions, file format issues.</div></li>
-                <li><a href="https://learn.microsoft.com/microsoft-copilot-studio/requirements-messages-management" target="_blank">Copilot Credits billing rates</a><div class="ref-desc">Cost of Tenant Graph Grounding for non-M365 Copilot users.</div></li>
-            </ul>
-        </div>
-    </div>
+<h3>Troubleshooting</h3>
+<p>If the agent cannot find a document:</p>
+<ol>
+<li><strong>Check SharePoint search</strong> — search for the document using the SharePoint search bar. If SharePoint cannot find it, the agent will not find it either.</li>
+<li><strong>Re-index the library</strong> — Library Settings &rarr; Advanced Settings &rarr; "Reindex Document Library" to force a re-crawl.</li>
+<li><strong>Check the search setting</strong> — the site must have "Allow this site to appear in search results" enabled.</li>
+</ol>
 
-    <script>
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById(btn.dataset.tab).classList.add('active');
-            });
-        });
-    </script>
+<p class="source">Sources: <a href="https://learn.microsoft.com/microsoftsearch/semantic-index-for-copilot#index-updates" target="_blank">Semantic Index — Index Updates — MS Learn</a> · <a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-unstructured-data" target="_blank">Unstructured data as a knowledge source — MS Learn</a></p>
+</section>
+
+<!-- TWO SHAREPOINT OPTIONS -->
+<section id="two-options">
+<h2>Two SharePoint Options in Copilot Studio</h2>
+<p>Copilot Studio has two different SharePoint integrations. They use <strong>completely different backends</strong> and produce different results.</p>
+
+<table>
+<tr><th>Aspect</th><th>Option 1: File Upload</th><th>Option 2: SharePoint Connector</th></tr>
+<tr><td>Where to find it</td><td>"Upload files" area in Add Knowledge</td><td>Dedicated SharePoint tile in Add Knowledge</td></tr>
+<tr><td>What happens</td><td>Files copied into Dataverse</td><td>Files stay in SharePoint, queried live</td></tr>
+<tr><td>Search backend</td><td>Dataverse search + Azure Cognitive Services</td><td>Microsoft Graph + Semantic Index</td></tr>
+<tr><td>Content freshness</td><td>4–6 hour sync</td><td>Updates: immediate. New docs: ~1 day.</td></tr>
+<tr><td>Dataverse storage</td><td>Yes — consumes quota</td><td>No</td></tr>
+<tr><td>Sensitivity labels</td><td>Not supported</td><td>Supported</td></tr>
+<tr><td>Tenant Graph Grounding</td><td>Not applicable</td><td>Available (premium)</td></tr>
+<tr><td>Max file size</td><td>512 MB</td><td>15 MB standard / 200 MB with Graph Grounding</td></tr>
+<tr><td>Image/table extraction (PDFs)</td><td>Yes</td><td>Not specified</td></tr>
+</table>
+
+<div class="callout">
+<strong>Why this matters</strong>
+The two options use completely different search systems. This is one reason they can produce different results for the same question.
+</div>
+
+<p class="source">Source: <a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-unstructured-data" target="_blank">Unstructured data as a knowledge source — MS Learn</a></p>
+</section>
+
+<!-- SECURITY -->
+<section id="security">
+<h2>Security, Permissions and Compliance</h2>
+<table>
+<tr><th>Area</th><th>Detail</th></tr>
+<tr><td>Authentication</td><td>Entra ID delegated auth (On-Behalf-Of) — the agent acts as the user</td></tr>
+<tr><td>Security trimming</td><td>Real-time RBAC check on every query — permissions are never cached</td></tr>
+<tr><td>Sensitivity labels</td><td>Supported for SharePoint connector only (Microsoft Purview)</td></tr>
+<tr><td>Data residency</td><td>Index stored in the region where the SharePoint site is located. EU Data Boundary respected. Multi-geo respected.</td></tr>
+<tr><td>LLM training</td><td>No customer data is used to train any language model — confirmed and documented</td></tr>
+<tr><td>Encryption</td><td>Data encrypted in transit (HTTPS) and at rest. BYOK supported.</td></tr>
+<tr><td>GDPR</td><td>Compliant</td></tr>
+</table>
+
+<div class="callout warn">
+<strong>Oversharing risk</strong>
+If SharePoint permissions are loose (for example, broad "Everyone except external users" sharing links), the agent will surface content to users who should not see it. Audit SharePoint permissions before enabling SharePoint as a knowledge source in production. Use SharePoint Advanced Management to identify overshared sites.
+</div>
+
+<p class="source">Sources: <a href="https://learn.microsoft.com/microsoft-copilot-studio/security-and-governance" target="_blank">Security and Governance — MS Learn</a> · <a href="https://learn.microsoft.com/purview/ai-copilot-studio" target="_blank">Microsoft Purview for Copilot Studio — MS Learn</a> · <a href="https://learn.microsoft.com/microsoft-365/copilot/employee-self-service/optimization-sharepoint" target="_blank">Optimising SharePoint Content — MS Learn</a></p>
+</section>
+
+<!-- COMPARISON -->
+<section id="comparison">
+<h2>SharePoint vs Azure AI Search — Architectural Trade-Off</h2>
+<p>The decision is not "which platform has the best chunk size?" It is: <strong>which retrieval approach gives the required answer quality, security, operational manageability and level of control?</strong></p>
+
+<table>
+<tr><th>Consideration</th><th>SharePoint (Managed)</th><th>Azure AI Search (Custom)</th></tr>
+<tr><td>Configuration effort</td><td>Low — add SharePoint as knowledge source, turn on Graph Grounding</td><td>High — design chunking, choose embedding model, configure search</td></tr>
+<tr><td>Maintenance</td><td>None — Microsoft manages indexing, refresh, ranking</td><td>Customer responsibility — monitor, tune, re-index</td></tr>
+<tr><td>Control over retrieval</td><td>None — chunking, ranking, index internals are opaque</td><td>Full — chunk size, top-K, scoring profiles, hybrid/vector config</td></tr>
+<tr><td>Security</td><td>Automatic via SharePoint permissions</td><td>Must be configured manually</td></tr>
+<tr><td>Content freshness</td><td>Updates immediate, new docs ~1 day</td><td>Depends on indexing pipeline design</td></tr>
+<tr><td>Complex documents</td><td>Handled by Microsoft (details undisclosed)</td><td>Customer controls document processing</td></tr>
+<tr><td>Data not in SharePoint</td><td>Not applicable</td><td>Can index blobs, SQL, APIs, etc.</td></tr>
+<tr><td>Cost</td><td>M365 licence + Copilot Credits (if needed)</td><td>Azure AI Search service + compute + storage</td></tr>
+</table>
+
+<div class="callout">
+<strong>Decision principle</strong>
+SharePoint provides a managed experience with less effort. Azure AI Search provides more control with more responsibility. If the managed approach meets quality requirements, its lower operational overhead is a strong advantage. If custom control is needed, the customer should identify specific requirements that justify the additional engineering work.
+</div>
+</section>
+
+<!-- KNOWN VS UNKNOWN -->
+<section id="known-unknown">
+<h2>What Is Known vs What Is Not Disclosed</h2>
+
+<h3><span class="tag tag-confirmed">CONFIRMED</span> Documented Product Details</h3>
+<table>
+<tr><th>Detail</th><th>What We Know</th></tr>
+<tr><td>Index type</td><td>Hybrid (lexical BM25 + semantic/vector)</td></tr>
+<tr><td>Standard results</td><td>Top 3 text extracts per knowledge source</td></tr>
+<tr><td>Graph Grounding results</td><td>"Greater volume of context, with greater precision"</td></tr>
+<tr><td>Query rewriting</td><td>Uses last 10 turns, synonym expansion, parallel keyword + semantic queries</td></tr>
+<tr><td>Supported files</td><td>PDF, DOCX, PPTX, ASPX, OneNote — up to 512 MB</td></tr>
+<tr><td>Content refresh (updates)</td><td>Immediate for existing documents</td></tr>
+<tr><td>Content refresh (new docs)</td><td>Approximately one day</td></tr>
+<tr><td>Security</td><td>Entra ID delegated auth, live RBAC, sensitivity labels</td></tr>
+<tr><td>Data residency</td><td>Stored in SharePoint site region, EUDB and multi-geo respected</td></tr>
+<tr><td>LLM training</td><td>Customer data never used for training</td></tr>
+</table>
+
+<h3><span class="tag tag-open">NOT DISCLOSED</span> Open Implementation Details</h3>
+<table>
+<tr><th>Detail</th><th>Status</th></tr>
+<tr><td>Chunk size</td><td>Not documented — described as "meaningful chunks"</td></tr>
+<tr><td>Fixed vs variable vs semantic chunking</td><td>Not documented</td></tr>
+<tr><td>Chunk overlap</td><td>Not documented</td></tr>
+<tr><td>Embedding model</td><td>Not disclosed</td></tr>
+<tr><td>Exact number of extracts with Graph Grounding</td><td>"Greater volume" — specific number not confirmed</td></tr>
+<tr><td>Whether citations equal total content given to AI</td><td>Not confirmed</td></tr>
+<tr><td>Re-ranking algorithm details</td><td>Beyond "hybrid + metadata signals" — not specified</td></tr>
+<tr><td>Deletion refresh timing</td><td>Not documented</td></tr>
+<tr><td>Whether "daily" means a fixed time or rolling</td><td>Not documented</td></tr>
+</table>
+
+<div class="callout purple">
+<strong>Why these details are not shared</strong>
+The product team has confirmed that these are managed-service implementation details that may be optimised over time. Disclosing specific values could create architectural dependencies that break when the system is updated. The recommended approach is to evaluate based on output quality.
+</div>
+</section>
+
+<!-- EVALUATION FRAMEWORK -->
+<section id="evaluation">
+<h2>Recommended Evaluation Framework</h2>
+<p>Before committing to a production knowledge source, test with 15 to 20 representative questions covering different scenarios.</p>
+
+<h3>Suggested Test Categories</h3>
+<ul>
+<li>Exact part-number lookup</li>
+<li>Product-specific part-number lookup (where the same component differs by model)</li>
+<li>Questions requiring information from a table</li>
+<li>Questions requiring information from multiple sections</li>
+<li>Questions requiring information from multiple documents</li>
+<li>Maintenance procedure retrieval</li>
+<li>Product specification lookup</li>
+<li>Troubleshooting questions</li>
+<li>Questions with abbreviations or informal product names</li>
+<li>Questions where two products have similar terminology</li>
+<li>Questions where the correct answer should be "not found"</li>
+<li>Questions asked by users with different SharePoint permissions</li>
+</ul>
+
+<h3>Evaluation Criteria</h3>
+<table>
+<tr><th>Criterion</th><th>What to Assess</th></tr>
+<tr><td>Correctness</td><td>Is the information factually accurate?</td></tr>
+<tr><td>Completeness</td><td>Does it cover all relevant product models and variations?</td></tr>
+<tr><td>Relevance</td><td>Is the response focused on what was asked?</td></tr>
+<tr><td>Citation quality</td><td>Do citations point to the right source documents?</td></tr>
+<tr><td>Disambiguation</td><td>Does it distinguish between similar products correctly?</td></tr>
+<tr><td>Unsupported claims</td><td>Does the AI state anything not in the source documents?</td></tr>
+<tr><td>Consistency</td><td>Does the same question produce the same quality answer each time?</td></tr>
+<tr><td>Permission behaviour</td><td>Do different users see only what they should?</td></tr>
+<tr><td>Content freshness</td><td>Are recent document changes reflected?</td></tr>
+<tr><td>Latency</td><td>Is response time acceptable?</td></tr>
+</table>
+
+<div class="callout green">
+<strong>Decision principle</strong>
+If SharePoint consistently meets quality, security and freshness requirements, its lower operational overhead provides a strong reason to use it. If Azure AI Search is still needed for specific control or custom processing requirements, those requirements should be identified precisely and confirmed to create measurable value. The architecture decision should be evidence-led.
+</div>
+</section>
+
+<!-- MS LEARN LINKS -->
+<section id="links">
+<h2>Microsoft Learn References</h2>
+
+<h3>Semantic Index and Architecture</h3>
+<ul>
+<li><a href="https://learn.microsoft.com/microsoftsearch/semantic-index-for-copilot" target="_blank">Semantic indexing for Microsoft Copilot</a> — what the index is, vectorisation, data flows, content types, refresh, administration, security, data residency</li>
+<li><a href="https://learn.microsoft.com/microsoft-365/copilot/microsoft-365-copilot-architecture" target="_blank">Microsoft Copilot architecture and how it works</a> — full data flow diagram</li>
+</ul>
+
+<h3>Retrieval API and Graph</h3>
+<ul>
+<li><a href="https://learn.microsoft.com/microsoft-365/copilot/extensibility/api/ai-services/retrieval/overview" target="_blank">Microsoft 365 Copilot Retrieval API overview</a> — the API powering SharePoint retrieval</li>
+<li><a href="https://learn.microsoft.com/microsoft-365/copilot/extensibility/api/ai-services/retrieval/copilotroot-retrieval" target="_blank">Retrieve grounding data (API reference)</a> — HTTP spec, permissions, filter expressions</li>
+</ul>
+
+<h3>Copilot Studio Knowledge Sources</h3>
+<ul>
+<li><a href="https://learn.microsoft.com/microsoft-copilot-studio/guidance/retrieval-augmented-generation" target="_blank">Enhance AI responses by using Retrieval Augmented Generation</a> — the RAG pipeline, all sources compared</li>
+<li><a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-unstructured-data" target="_blank">Unstructured data as a knowledge source</a> — Dataverse ingestion, two SharePoint options, sync frequency</li>
+<li><a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-copilot-studio" target="_blank">Knowledge sources summary</a> — Tenant Graph Grounding setting, orchestration limits</li>
+<li><a href="https://learn.microsoft.com/microsoft-copilot-studio/knowledge-add-sharepoint" target="_blank">Add SharePoint as a knowledge source</a> — setup and configuration</li>
+<li><a href="https://learn.microsoft.com/microsoft-copilot-studio/agents-experience/knowledge-sources-overview" target="_blank">Available knowledge sources for agents</a> — all source types and decision table</li>
+<li><a href="https://learn.microsoft.com/microsoft-copilot-studio/guidance/custom-knowledge-sources" target="_blank">Custom knowledge sources (OnKnowledgeRequested)</a> — build custom sources with your own search API</li>
+</ul>
+
+<h3>Security and Governance</h3>
+<ul>
+<li><a href="https://learn.microsoft.com/microsoft-copilot-studio/security-and-governance" target="_blank">Security and governance</a> — DLP, compliance, environment routing</li>
+<li><a href="https://learn.microsoft.com/microsoft-copilot-studio/security-faq" target="_blank">Security FAQs</a> — confidential sites, DLP configuration, encryption</li>
+<li><a href="https://learn.microsoft.com/purview/ai-copilot-studio" target="_blank">Microsoft Purview for Copilot Studio</a> — sensitivity labels, DLP, encryption</li>
+<li><a href="https://learn.microsoft.com/sharepoint/manage-access-agents-in-sharepoint" target="_blank">Manage access to agents in SharePoint</a> — restricted access control, SAM</li>
+<li><a href="https://learn.microsoft.com/microsoft-365/copilot/employee-self-service/optimization-sharepoint" target="_blank">Optimising SharePoint content for agents</a> — prevent oversharing, content quality</li>
+<li><a href="https://learn.microsoft.com/microsoft-copilot-studio/guidance/sec-gov-intro" target="_blank">Governance overview</a> — full governance framework</li>
+</ul>
+
+<h3>Troubleshooting and Billing</h3>
+<ul>
+<li><a href="https://learn.microsoft.com/troubleshoot/power-platform/copilot-studio/generative-answers/sharepoint-no-response" target="_blank">SharePoint sources don't return results</a> — top 3 limit, indexing delays, permissions</li>
+<li><a href="https://learn.microsoft.com/microsoft-copilot-studio/requirements-messages-management" target="_blank">Copilot Credits billing rates</a> — cost of Tenant Graph Grounding</li>
+</ul>
+</section>
+
+<div class="footer">
+<p>Information is based on publicly available Microsoft Learn documentation and Copilot Studio Office Hours guidance (August 2026). Details labelled as unconfirmed should not be presented as product commitments.</p>
+</div>
+
+</div>
 </body>
 </html>
